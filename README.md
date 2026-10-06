@@ -21,9 +21,15 @@
   - [4.3. Phân quyền API](#43-phân-quyền-api)
   - [4.4. API Flow tổng quát](#44-api-flow-tổng-quát)
   - [4.5. OpenAPI / Swagger](#45-openapi--swagger)
-  - [4.6. Docker Deployment](#46-docker-deployment)
+  - [4.6. Docker](#46-docker)
   - [4.7. Kiến trúc triển khai](#47-kiến-trúc-triển-khai)
 - [5. Thiết kế API](#5-thiết-kế-api)
+  - [5.1. Authentication](#51-authentication)
+  - [5.2. Users](#52-users)
+  - [5.3. Drivers](#53-drivers)
+  - [5.4. Vehicles](#54-vehicles)
+  - [5.5. Trips](#55-trips)
+  - [5.6. Bookings](#56-bookings)
 - [6. Thiết kế mã nguồn](#6-thiết-kế-mã-nguồn)
   - [6.1. Cấu trúc project](#61-cấu-trúc-project)
   - [6.2. Trách nhiệm của từng layer](#62-trách-nhiệm-của-từng-layer)
@@ -34,7 +40,7 @@
   - [7.2. Testing Strategy](#72-testing-strategy)
 - [8. Traceability và tiêu chí hoàn thành](#8-traceability-và-tiêu-chí-hoàn-thành)
   - [8.1. Traceability giữa yêu cầu và thành phần](#81-traceability-giữa-yêu-cầu-và-thành-phần)
-  - [8.2. Tiêu chí hoàn thành phiên bản 1](#82-tiêu-chí-hoàn-thành-phiên-bản-1)
+  - [8.2. Tiêu chí hoàn thành pha 1](#82-tiêu-chí-hoàn-thành-pha-1)
   - [8.3. Tóm tắt kiến trúc](#83-tóm-tắt-kiến-trúc)
 
 ---
@@ -53,7 +59,6 @@
 - API được bảo vệ bằng JWT và Spring Security.
 - Swagger/OpenAPI được sử dụng để mô tả và kiểm thử API.
 
----
 ---
 ## 1.1. Mục tiêu hệ thống
 ### 1.1.1. Mục tiêu nghiệp vụ
@@ -835,15 +840,12 @@ TRIPS
 BOOKINGS
 ```
 
-Các migration trong cấu trúc project nguồn cũng được tổ chức theo thứ tự này. fileciteturn0file0L247-L262
-
 ---
 ---
 # 4. Kiến trúc hệ thống
-## 4.1. Kiến trúc hệ thống
-### 4.1.1. Kiến trúc tổng thể
+## 4.1. Kiến trúc tổng thể
 
-Hệ thống sử dụng **Layered Architecture**:
+Hệ thống sử dụng **Kiến trúc phân lớp** cho pha 1:
 
 ```text
 ┌─────────────────────────────────────────────┐
@@ -904,7 +906,7 @@ Hệ thống sử dụng **Layered Architecture**:
 
 ---
 ---
-## 4.3. Security Architecture
+## 4.2. Security Architecture
 Authentication được xử lý tập trung bằng Spring Security.
 
 ```text
@@ -932,7 +934,7 @@ Controller
 Service
 ```
 
-### 4.3.1. Thành phần security
+### Thành phần security
 
 #### JwtService
 
@@ -971,7 +973,7 @@ Cấu hình:
 
 ---
 ---
-## 4.4. Phân quyền API
+## 4.3. Phân quyền API
 | API | Guest | Passenger | Driver | Admin |
 |---|---:|---:|---:|---:|
 | POST `/api/auth/register` | ✓ | ✓ | ✓ | ✓ |
@@ -1052,7 +1054,7 @@ Bookings
 
 ---
 ---
-## 4.6. Docker Deployment
+## 4.6. Docker
 Kiến trúc đề xuất:
 
 ```text
@@ -1344,8 +1346,6 @@ carpoolbooking/
 └── pom.xml
 ```
 
-Cấu trúc package và các thành phần trên được lấy từ cấu trúc project trong tài liệu nguồn. fileciteturn0file0L80-L118 fileciteturn0file0L213-L245
-
 ---
 ---
 ## 6.2. Trách nhiệm của từng layer
@@ -1471,7 +1471,7 @@ Response đề xuất:
 ---
 # 7. Yêu cầu chất lượng và kiểm thử
 ## 7.1. Yêu cầu phi chức năng
-### 7.1.01. NFR-01. Security
+### 7.1.1. NFR-01. Security
 
 - Password không lưu plaintext.
 - JWT dùng cho authentication.
@@ -1481,7 +1481,7 @@ Response đề xuất:
 - Validation input.
 - Không tin tưởng `passenger_id` từ request; lấy user identity từ SecurityContext/JWT.
 
-### 7.1.02. NFR-02. Maintainability
+### 7.1.2. NFR-02. Maintainability
 
 - Layered architecture.
 - DTO.
@@ -1490,7 +1490,7 @@ Response đề xuất:
 - Service chứa business logic.
 - Repository chứa data access.
 
-### 7.1.03. NFR-03. Performance
+### 7.1.3. NFR-03. Performance
 
 - Index cho các trường thường xuyên tìm kiếm.
 - Có thể tạo composite index:
@@ -1502,13 +1502,13 @@ Response đề xuất:
 - Index các foreign key quan trọng.
 - Có thể tối ưu query search ở Pha 2.
 
-### 7.1.04. NFR-04. Reliability
+### 7.1.4. NFR-04. Reliability
 
 - Booking và cập nhật `available_seats` phải nằm trong transaction.
 - Không để booking thành công nhưng số ghế không giảm.
 - Không để hủy booking thành công nhưng số ghế không tăng.
 
-### 7.1.05. NFR-05. API consistency
+### 7.1.5. NFR-05. API consistency
 
 API sử dụng:
 
@@ -1592,28 +1592,26 @@ Các flow quan trọng:
 
 ---
 ---
-## 8.2. Tiêu chí hoàn thành phiên bản 1
+## 8.2. Tiêu chí hoàn thành pha 1
 Hệ thống được xem là đáp ứng phiên bản cơ bản khi:
 
-- [ ] Có REST JSON API.
-- [ ] Có POST / GET / DELETE.
-- [ ] Có PostgreSQL.
-- [ ] Có Entity + Repository.
-- [ ] Có Service layer.
-- [ ] Có Controller layer.
-- [ ] Có đăng ký/đăng nhập.
-- [ ] Có JWT.
-- [ ] Có Spring Security Filter.
-- [ ] Có ít nhất một GET yêu cầu authentication.
-- [ ] Có ít nhất một POST yêu cầu authentication.
-- [ ] Có role `PASSENGER`, `DRIVER`, `ADMIN`.
-- [ ] Password được hash.
-- [ ] Có Swagger/OpenAPI.
-- [ ] Có Global Exception Handler.
-- [ ] Có database migration.
-- [ ] Có README.
-- [ ] Có Docker packaging.
-- [ ] Có test cho các business rule quan trọng.
+- Có REST JSON API.
+- Có POST / GET / DELETE.
+- Có PostgreSQL.
+- Có Entity + Repository.
+- Có Service layer.
+- Có Controller layer.
+- Có đăng ký/đăng nhập.
+- Có JWT.
+- Có Spring Security Filter.
+- Có ít nhất một GET yêu cầu authentication.
+- Có ít nhất một POST yêu cầu authentication.
+- Có role `PASSENGER`, `DRIVER`, `ADMIN`.
+- Password được hash.
+- Có Swagger/OpenAPI.
+- Có Global Exception Handler.
+- Có database migration.
+- Có đóng gói docker.
 
 ---
 ---
@@ -1657,7 +1655,7 @@ User
       └── Booking
 ```
 
-Thiết kế này đáp ứng yêu cầu tách lớp: Controller chịu trách nhiệm API, Service chịu trách nhiệm nghiệp vụ và Repository chịu trách nhiệm truy cập dữ liệu. Cấu trúc security trong project cũng tách riêng `JwtAuthenticationFilter`, `JwtService` và `CustomUserDetailsService`, thay vì lặp logic xác thực trong từng endpoint. fileciteturn0file0L225-L245
+Thiết kế này đáp ứng yêu cầu tách lớp: Controller chịu trách nhiệm API, Service chịu trách nhiệm nghiệp vụ và Repository chịu trách nhiệm truy cập dữ liệu. Cấu trúc security trong project cũng tách riêng `JwtAuthenticationFilter`, `JwtService` và `CustomUserDetailsService`, thay vì lặp logic xác thực trong từng endpoint.
 
 ---
 ---
