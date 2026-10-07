@@ -1434,6 +1434,5 @@ Thiết kế này đáp ứng yêu cầu tách lớp: Controller chịu trách n
 
 | Thành viên | Công việc chính |
 |---|---|
-| Nguyễn Văn Huy Hoàng | Auth, User, Driver, Vehicle, Security, Exception Handling
- | 
+| Nguyễn Văn Huy Hoàng | Auth, User, Driver, Vehicle, Security, Exception Handling |
 | Bùi Công Huy | Trip, Booking, Integration Test, Swagger/OpenAPI, Docker, Test Kaggle CPU |
