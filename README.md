@@ -19,10 +19,6 @@
   - [4.1. Kiến trúc tổng thể](#41-kiến-trúc-tổng-thể)
   - [4.2. Security Architecture](#42-security-architecture)
   - [4.3. Phân quyền API](#43-phân-quyền-api)
-  - [4.4. API Flow tổng quát](#44-api-flow-tổng-quát)
-  - [4.5. OpenAPI / Swagger](#45-openapi--swagger)
-  - [4.6. Docker](#46-docker)
-  - [4.7. Kiến trúc triển khai](#47-kiến-trúc-triển-khai)
 - [5. Thiết kế API](#5-thiết-kế-api)
   - [5.1. Authentication](#51-authentication)
   - [5.2. Users](#52-users)
@@ -30,18 +26,17 @@
   - [5.4. Vehicles](#54-vehicles)
   - [5.5. Trips](#55-trips)
   - [5.6. Bookings](#56-bookings)
+  - [5.7. Bảng tổng hợp API](#57-bảng-tổng-hợp-api)
 - [6. Thiết kế mã nguồn](#6-thiết-kế-mã-nguồn)
   - [6.1. Cấu trúc project](#61-cấu-trúc-project)
   - [6.2. Trách nhiệm của từng layer](#62-trách-nhiệm-của-từng-layer)
   - [6.3. DTO Architecture](#63-dto-architecture)
   - [6.4. Exception Handling](#64-exception-handling)
-- [7. Yêu cầu chất lượng và kiểm thử](#7-yêu-cầu-chất-lượng-và-kiểm-thử)
-  - [7.1. Yêu cầu phi chức năng](#71-yêu-cầu-phi-chức-năng)
-  - [7.2. Testing Strategy](#72-testing-strategy)
-- [8. Traceability và tiêu chí hoàn thành](#8-traceability-và-tiêu-chí-hoàn-thành)
-  - [8.1. Traceability giữa yêu cầu và thành phần](#81-traceability-giữa-yêu-cầu-và-thành-phần)
-  - [8.2. Tiêu chí hoàn thành pha 1](#82-tiêu-chí-hoàn-thành-pha-1)
-  - [8.3. Tóm tắt kiến trúc](#83-tóm-tắt-kiến-trúc)
+- [7. Yêu cầu phi chức năng](#7-yêu-cầu-phi-chức-năng)
+- [8. Tiêu chí hoàn thành pha 1](#8-tiêu-chí-hoàn-thành-pha-1)
+  - [8.1. Tiêu chí hoàn thành](#81-tiêu-chí-hoàn-thành)
+  - [8.2. Tóm tắt kiến trúc](#82-tóm-tắt-kiến-trúc)
+- [9. Phân chia công việc](#9-phân-chia-công-việc)
 
 ---
 
@@ -87,12 +82,11 @@ Hệ thống phải:
 - Có xử lý exception tập trung.
 - Có Swagger/OpenAPI.
 - Có migration database.
-- Có thể đóng gói và chạy bằng Docker ở giai đoạn triển khai.
+- Có đóng gói và chạy bằng Docker ở giai đoạn triển khai.
 
 ---
 ---
 ## 1.2. Phạm vi hệ thống
-### 1.2.1. Trong phạm vi (nghiệp vụ đơn giản và tối thiểu)
 
 #### Authentication
 - Đăng ký tài khoản.
@@ -133,18 +127,6 @@ Hệ thống phải:
 #### Administration
 - Quản lý người dùng/tài xế theo quyền ADMIN.
 - Có thể mở rộng kiểm duyệt tài xế hoặc khóa tài khoản ở giai đoạn sau.
-
-### 1.2.2. Ngoài phạm vi hiện tại (nghiệp vụ bổ sung)
-
-Các chức năng sau chưa thuộc phiên bản cơ bản:
-
-- Thanh toán trực tuyến thực tế.
-- Tích hợp ngân hàng.
-- Bản đồ/GPS thời gian thực.
-- Chat giữa tài xế và hành khách.
-- Đánh giá tài xế.
-- Thông báo SMS/email.
-- Tối ưu tuyến đường bằng AI.
 
 ---
 ---
@@ -499,99 +481,75 @@ FULL → OPEN
 ## 2.3. Luồng nghiệp vụ chính
 ### 2.3.1. Luồng đăng ký / đăng nhập
 
-```text
-User
- │
- ├── POST /api/auth/register
- │          │
- │          ▼
- │      AuthController
- │          │
- │          ▼
- │      AuthService
- │          │
- │          ▼
- │      PasswordEncoder
- │          │
- │          ▼
- │      UserRepository
- │          │
- │          ▼
- │      PostgreSQL
- │
- └── POST /api/auth/login
-            │
-            ▼
-        AuthService
-            │
-            ├── verify password
-            │
-            └── JwtService
-                    │
-                    ▼
-                  JWT
+```mermaid
+flowchart TD
+    U[User]
+
+    U -->|POST /api/auth/register| AC[AuthController]
+    AC --> AS[AuthService]
+    AS --> PE[PasswordEncoder]
+    PE --> UR[UserRepository]
+    UR --> DB[(PostgreSQL)]
+
+    U -->|POST /api/auth/login| AC
+    AC --> AS
+
+    AS --> VP[Verify Password]
+    VP --> JWT[JwtService]
+    JWT --> TOKEN[JWT]
 ```
 
 ---
 
 ### 2.3.2. Luồng tài xế tạo chuyến
 
-```text
-Driver
-  │
-  │ POST /api/trips
-  ▼
-JwtAuthenticationFilter
-  │
-  ▼
-TripController
-  │
-  ▼
-TripService
-  │
-  ├── kiểm tra Driver
-  ├── kiểm tra Driver ACTIVE
-  ├── kiểm tra license expiry
-  ├── kiểm tra Vehicle ownership
-  ├── kiểm tra seat capacity
-  ├── validate price/time
-  │
-  ▼
-TripRepository
-  │
-  ▼
-PostgreSQL
+```mermaid
+flowchart TD
+    D[Driver]
+
+    D -->|POST /api/trips| JAF[JwtAuthenticationFilter]
+    JAF --> TC[TripController]
+    TC --> TS[TripService]
+
+    TS --> C1[Kiểm tra Driver]
+    TS --> C2[Kiểm tra Driver ACTIVE]
+    TS --> C3[Kiểm tra license expiry]
+    TS --> C4[Kiểm tra Vehicle ownership]
+    TS --> C5[Kiểm tra seat capacity]
+    TS --> C6[Validate price / time]
+
+    C1 --> TR[TripRepository]
+    C2 --> TR
+    C3 --> TR
+    C4 --> TR
+    C5 --> TR
+    C6 --> TR
+
+    TR --> DB[(PostgreSQL)]
 ```
 
 ---
 
 ### 2.3.3. Luồng đặt chỗ
 
-```text
-Passenger
-   │
-   │ POST /api/bookings
-   ▼
-JWT Authentication
-   │
-   ▼
-BookingController
-   │
-   ▼
-BookingService
-   │
-   ├── Load Trip
-   ├── Check OPEN
-   ├── Check available_seats
-   ├── Validate seats
-   ├── Calculate total_price
-   │
-   ├── Create Booking
-   │
-   └── Update Trip.available_seats
-             │
-             ▼
-        PostgreSQL
+```mermaid
+flowchart TD
+    P[Passenger]
+
+    P -->|POST /api/bookings| JWT[JWT Authentication]
+    JWT --> BC[BookingController]
+    BC --> BS[BookingService]
+
+    BS --> C1[Load Trip]
+    C1 --> C2[Check Trip OPEN]
+    C2 --> C3[Check available_seats]
+    C3 --> C4[Validate seats]
+    C4 --> C5[Calculate total_price]
+
+    C5 --> CB[Create Booking]
+    CB --> UTS[Update Trip.available_seats]
+
+    UTS --> DB[(PostgreSQL)]
 ```
 
 Nên thực hiện thao tác tạo booking và giảm số ghế trong cùng một transaction để tránh trạng thái dữ liệu không đồng nhất.
@@ -600,23 +558,26 @@ Nên thực hiện thao tác tạo booking và giảm số ghế trong cùng m�
 
 ### 2.3.4. Luồng hủy booking
 
-```text
-Passenger
-   │
-   │ DELETE /api/bookings/{id}
-   ▼
-BookingController
-   │
-   ▼
-BookingService
-   │
-   ├── Check booking ownership
-   ├── Check booking status
-   ├── status = CANCELLED
-   └── Trip.available_seats += seats
-             │
-             ▼
-        PostgreSQL
+```mermaid
+flowchart TD
+    P[Passenger]
+
+    P -->|DELETE /api/bookings/:id| BC[BookingController]
+    BC --> BS[BookingService]
+
+    BS --> V[Business Validation]
+
+    V --> C1[Check booking ownership]
+    V --> C2[Check booking status]
+
+    C1 --> C3[Set status CANCELLED]
+    C2 --> C3
+
+    C3 --> BR[BookingRepository]
+    BR -->|Update Booking| DB[(PostgreSQL)]
+
+    C3 --> TR[TripRepository]
+    TR -->|Increase available seats| DB
 ```
 
 ---
@@ -845,63 +806,52 @@ BOOKINGS
 # 4. Kiến trúc hệ thống
 ## 4.1. Kiến trúc tổng thể
 
-Hệ thống sử dụng **Kiến trúc phân lớp** cho pha 1:
+Hệ thống sử dụng **Kiến trúc 4 lớp** cho pha 1:
 
-```text
-┌─────────────────────────────────────────────┐
-│                  CLIENT                     │
-│          Web / Mobile / Postman             │
-└──────────────────────┬──────────────────────┘
-                       │ HTTP/JSON
-                       ▼
-┌─────────────────────────────────────────────┐
-│              API / CONTROLLER               │
-│                                             │
-│ AuthController                              │
-│ UserController                              │
-│ DriverController                            │
-│ VehicleController                           │
-│ TripController                              │
-│ BookingController                           │
-└──────────────────────┬──────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────┐
-│             BUSINESS / SERVICE             │
-│                                             │
-│ AuthService                                 │
-│ UserService                                 │
-│ DriverService                               │
-│ VehicleService                              │
-│ TripService                                 │
-│ BookingService                               │
-│                                             │
-│ Business Rules                              │
-│ Validation                                  │
-│ Booking / Seat Logic                        │
-└──────────────────────┬──────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────┐
-│             DATA ACCESS / REPOSITORY        │
-│                                             │
-│ UserRepository                              │
-│ DriverRepository                            │
-│ VehicleRepository                           │
-│ TripRepository                              │
-│ BookingRepository                            │
-└──────────────────────┬──────────────────────┘
-                       │ JPA / Hibernate
-                       ▼
-┌─────────────────────────────────────────────┐
-│                PostgreSQL                   │
-│                                             │
-│ USERS                                       │
-│ DRIVERS                                     │
-│ VEHICLES                                    │
-│ TRIPS                                       │
-│ BOOKINGS                                    │
-└─────────────────────────────────────────────┘
+## Kiến trúc hệ thống
+
+```mermaid
+flowchart TD
+
+    CLIENT["CLIENT<br/><br/>Web / Mobile / Postman"]
+
+    API["API / CONTROLLER<br/><br/>
+    AuthController<br/>
+    UserController<br/>
+    DriverController<br/>
+    VehicleController<br/>
+    TripController<br/>
+    BookingController"]
+
+    SERVICE["BUSINESS / SERVICE<br/><br/>
+    AuthService<br/>
+    UserService<br/>
+    DriverService<br/>
+    VehicleService<br/>
+    TripService<br/>
+    BookingService<br/><br/>
+    Business Rules<br/>
+    Validation<br/>
+    Booking / Seat Logic"]
+
+    REPOSITORY["DATA ACCESS / REPOSITORY<br/><br/>
+    UserRepository<br/>
+    DriverRepository<br/>
+    VehicleRepository<br/>
+    TripRepository<br/>
+    BookingRepository"]
+
+    DB["PostgreSQL<br/><br/>
+    USERS<br/>
+    DRIVERS<br/>
+    VEHICLES<br/>
+    TRIPS<br/>
+    BOOKINGS"]
+
+    CLIENT -->|"HTTP / JSON"| API
+    API --> SERVICE
+    SERVICE --> REPOSITORY
+    REPOSITORY -->|"JPA / Hibernate"| DB
 ```
 
 ---
@@ -909,29 +859,28 @@ Hệ thống sử dụng **Kiến trúc phân lớp** cho pha 1:
 ## 4.2. Security Architecture
 Authentication được xử lý tập trung bằng Spring Security.
 
-```text
-Client
-  │
-  │ Authorization: Bearer JWT
-  ▼
-Spring Security
-  │
-  ▼
-JwtAuthenticationFilter
-  │
-  ├── đọc JWT
-  ├── validate JWT
-  ├── lấy username/user information
-  └── tạo Authentication
-  │
-  ▼
-SecurityContext
-  │
-  ▼
-Controller
-  │
-  ▼
-Service
+```mermaid
+flowchart TD
+    Client["Client"]
+    Security["Spring Security"]
+    Filter["JwtAuthenticationFilter"]
+    Read["Đọc JWT"]
+    Validate["Validate JWT"]
+    User["Lấy username / user information"]
+    Auth["Tạo Authentication"]
+    Context["SecurityContext"]
+    Controller["Controller"]
+    Service["Service"]
+
+    Client -->|"Authorization: Bearer JWT"| Security
+    Security --> Filter
+    Filter --> Read
+    Read --> Validate
+    Validate --> User
+    User --> Auth
+    Auth --> Context
+    Context --> Controller
+    Controller --> Service
 ```
 
 ### Thành phần security
@@ -989,149 +938,6 @@ Cấu hình:
 | GET `/api/users/me` | ✗ | ✓ | ✓ | ✓ |
 
 Quyền cụ thể có thể được triển khai bằng Spring Security authorization rules và/hoặc method-level authorization.
-
----
----
-## 4.4. API Flow tổng quát
-```text
-                    Client
-                      │
-                      ▼
-              HTTP REST Request
-                      │
-                      ▼
-             Spring Security
-                      │
-             ┌────────┴────────┐
-             │                 │
-        Public API       Protected API
-             │                 │
-             │          JWT Filter
-             │                 │
-             │                 ▼
-             │          SecurityContext
-             │                 │
-             └────────┬────────┘
-                      ▼
-                 Controller
-                      │
-                      ▼
-                   Service
-                      │
-                Business Rules
-                      │
-                      ▼
-                 Repository
-                      │
-                      ▼
-                 PostgreSQL
-                      │
-                      ▼
-                 JSON Response
-```
-
----
----
-## 4.5. OpenAPI / Swagger
-Swagger được sử dụng để:
-
-- Liệt kê API.
-- Mô tả request/response.
-- Kiểm thử endpoint.
-- Kiểm thử JWT protected endpoint.
-- Làm tài liệu API cho frontend/client.
-
-Các nhóm API:
-
-```text
-Authentication
-Users
-Drivers
-Vehicles
-Trips
-Bookings
-```
-
----
----
-## 4.6. Docker
-Kiến trúc đề xuất:
-
-```text
-docker-compose
-      │
-      ├── app
-      │    └── Spring Boot
-      │
-      └── postgres
-           └── PostgreSQL
-```
-
-Environment variables nên dùng:
-
-```text
-DB_HOST
-DB_PORT
-DB_NAME
-DB_USERNAME
-DB_PASSWORD
-JWT_SECRET
-JWT_EXPIRATION
-```
-
-Không commit:
-
-```text
-password
-JWT secret
-production credentials
-```
-
-vào Git repository.
-
----
----
-## 4.7. Kiến trúc triển khai
-Kiến trúc triển khai cơ bản:
-
-```text
-                    Internet
-                       │
-                       ▼
-              ┌─────────────────┐
-              │   API Client    │
-              │ Web / Postman   │
-              └────────┬────────┘
-                       │ HTTPS
-                       ▼
-              ┌─────────────────┐
-              │ Spring Boot API │
-              │   Application   │
-              └────────┬────────┘
-                       │
-             ┌─────────┴─────────┐
-             │                   │
-             ▼                   ▼
-      ┌──────────────┐    ┌──────────────┐
-      │ Spring       │    │ Swagger /    │
-      │ Security/JWT │    │ OpenAPI      │
-      └──────────────┘    └──────────────┘
-             │
-             ▼
-      ┌──────────────┐
-      │ PostgreSQL   │
-      └──────────────┘
-```
-
-Trong môi trường development, Spring Boot có thể chạy local và kết nối PostgreSQL local.
-
-Trong môi trường deployment, có thể đóng gói:
-
-```text
-Docker
-  ├── Spring Boot Container
-  └── PostgreSQL Container
-```
 
 ---
 ---
@@ -1238,6 +1044,44 @@ GET /api/bookings/my
 DELETE /api/bookings/{id}
 ```
 
+### 5.7. Bảng tổng hợp API
+
+| STT | Module | Method | Endpoint | Authentication | Mô tả |
+|---:|---|---|---|---|---|
+| 1 | Authentication | POST | `/api/auth/register` | Không | Đăng ký tài khoản |
+| 2 | Authentication | POST | `/api/auth/login` | Không | Đăng nhập và nhận JWT |
+| 3 | Users | GET | `/api/users/me` | JWT | Lấy thông tin người dùng hiện tại |
+| 4 | Users | PUT | `/api/users/me` | JWT | Cập nhật thông tin người dùng |
+| 5 | Drivers | POST | `/api/drivers` | JWT | Tạo hồ sơ tài xế |
+| 6 | Drivers | GET | `/api/drivers/{id}` | JWT | Lấy thông tin hồ sơ tài xế |
+| 7 | Drivers | PUT | `/api/drivers/{id}` | JWT | Cập nhật hồ sơ tài xế |
+| 8 | Vehicles | POST | `/api/vehicles` | JWT | Thêm phương tiện |
+| 9 | Vehicles | GET | `/api/vehicles/{id}` | JWT | Lấy thông tin phương tiện |
+| 10 | Vehicles | PUT | `/api/vehicles/{id}` | JWT | Cập nhật thông tin phương tiện |
+| 11 | Vehicles | DELETE | `/api/vehicles/{id}` | JWT | Xóa phương tiện |
+| 12 | Trips | POST | `/api/trips` | JWT | Tạo chuyến đi |
+| 13 | Trips | GET | `/api/trips` | Không | Tìm kiếm/danh sách chuyến đi |
+| 14 | Trips | GET | `/api/trips/{id}` | Không | Xem chi tiết chuyến đi |
+| 15 | Trips | PUT | `/api/trips/{id}` | JWT | Cập nhật chuyến đi |
+| 16 | Trips | DELETE | `/api/trips/{id}` | JWT | Xóa chuyến đi |
+| 17 | Bookings | POST | `/api/bookings` | JWT | Tạo yêu cầu đặt chỗ |
+| 18 | Bookings | GET | `/api/bookings/{id}` | JWT | Xem chi tiết đặt chỗ |
+| 19 | Bookings | GET | `/api/bookings/my` | JWT | Xem các đặt chỗ của người dùng |
+| 20 | Bookings | DELETE | `/api/bookings/{id}` | JWT | Hủy đặt chỗ |
+
+### Search parameters cho `GET /api/trips`
+
+| Parameter | Kiểu dữ liệu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `origin` | String | Không | Huyện, Tỉnh/thành phố xuất phát |
+| `destination` | String | Không | Huyện, Tỉnh/thành phố đến |
+| `departureDate` | Date | Không | Ngày khởi hành |
+
+**Ví dụ:**
+
+```http
+GET /api/trips?origin=HaNoi&destination=NinhBinh&departureDate=2026-10-15
+```
 ---
 ---
 # 6. Thiết kế mã nguồn
@@ -1469,9 +1313,8 @@ Response đề xuất:
 
 ---
 ---
-# 7. Yêu cầu chất lượng và kiểm thử
-## 7.1. Yêu cầu phi chức năng
-### 7.1.1. NFR-01. Security
+# 7. Yêu cầu phi chức năng
+## 7.1. NFR-01. Security
 
 - Password không lưu plaintext.
 - JWT dùng cho authentication.
@@ -1481,7 +1324,7 @@ Response đề xuất:
 - Validation input.
 - Không tin tưởng `passenger_id` từ request; lấy user identity từ SecurityContext/JWT.
 
-### 7.1.2. NFR-02. Maintainability
+## 7.2. NFR-02. Maintainability
 
 - Layered architecture.
 - DTO.
@@ -1490,7 +1333,7 @@ Response đề xuất:
 - Service chứa business logic.
 - Repository chứa data access.
 
-### 7.1.3. NFR-03. Performance
+## 7.3. NFR-03. Performance
 
 - Index cho các trường thường xuyên tìm kiếm.
 - Có thể tạo composite index:
@@ -1502,13 +1345,13 @@ Response đề xuất:
 - Index các foreign key quan trọng.
 - Có thể tối ưu query search ở Pha 2.
 
-### 7.1.4. NFR-04. Reliability
+## 7.4. NFR-04. Reliability
 
 - Booking và cập nhật `available_seats` phải nằm trong transaction.
 - Không để booking thành công nhưng số ghế không giảm.
 - Không để hủy booking thành công nhưng số ghế không tăng.
 
-### 7.1.5. NFR-05. API consistency
+## 7.5. NFR-05. API consistency
 
 API sử dụng:
 
@@ -1519,81 +1362,8 @@ API sử dụng:
 
 ---
 ---
-## 7.2. Testing Strategy
-### Unit Test
-
-Tập trung vào Service:
-
-```text
-AuthServiceTest
-BookingServiceTest
-TripServiceTest
-DriverServiceTest
-VehicleServiceTest
-```
-
-Các case quan trọng:
-
-- Đăng ký email trùng.
-- Password sai.
-- Driver hết hạn license.
-- Driver inactive.
-- Total seats vượt seat capacity.
-- Booking vượt số ghế còn lại.
-- Booking thành công.
-- Hủy booking.
-- Hoàn lại ghế sau khi hủy.
-
-### Integration Test
-
-Kiểm tra:
-
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-Database
-```
-
-Các flow quan trọng:
-
-1. Register → Login.
-2. Login → JWT.
-3. Driver → Create Vehicle.
-4. Driver → Create Trip.
-5. Passenger → Search Trip.
-6. Passenger → Create Booking.
-7. Passenger → Cancel Booking.
-
----
----
-# 8. Traceability và tiêu chí hoàn thành
-## 8.1. Traceability giữa yêu cầu và thành phần
-| Requirement | Thành phần |
-|---|---|
-| Authentication | AuthController + AuthService |
-| JWT | JwtService |
-| JWT Filter | JwtAuthenticationFilter |
-| User management | UserController + UserService |
-| Driver management | DriverController + DriverService |
-| Vehicle management | VehicleController + VehicleService |
-| Trip management | TripController + TripService |
-| Booking | BookingController + BookingService |
-| Database access | Repository layer |
-| API documentation | OpenApiConfig |
-| Password hashing | PasswordEncoderConfig |
-| Authorization | SecurityConfig |
-| Error handling | GlobalExceptionHandler |
-| Data transformation | Mapper |
-| Database versioning | db/migration |
-
----
----
-## 8.2. Tiêu chí hoàn thành pha 1
-Hệ thống được xem là đáp ứng phiên bản cơ bản khi:
+# 8. Tiêu chí hoàn thành pha 1
+## 8.1. Tiêu chí hoàn thành
 
 - Có REST JSON API.
 - Có POST / GET / DELETE.
@@ -1615,7 +1385,7 @@ Hệ thống được xem là đáp ứng phiên bản cơ bản khi:
 
 ---
 ---
-## 8.3. Tóm tắt kiến trúc
+## 8.2. Tóm tắt kiến trúc
 Hệ thống Carpool Booking sử dụng kiến trúc nhiều tầng:
 
 ```text
@@ -1659,3 +1429,11 @@ Thiết kế này đáp ứng yêu cầu tách lớp: Controller chịu trách n
 
 ---
 ---
+
+## 9. Phân chia công việc
+
+| Thành viên | Công việc chính |
+|---|---|
+| Nguyễn Văn Huy Hoàng | Auth, User, Driver, Vehicle, Security, Exception Handling
+ | 
+| Bùi Công Huy | Trip, Booking, Integration Test, Swagger/OpenAPI, Docker, Test Kaggle CPU |
