@@ -25,8 +25,8 @@ Hệ thống tập trung giải quyết các vấn đề chính sau:
 
 | Thành viên           | Công việc                                                           |
 | -------------------- | ------------------------------------------------------------------- |
-| Nguyễn Văn Huy Hoàng | Authentication, User, Driver, Vehicle, Security, Exception Handling |
-| Bùi Công Huy         | Trip, Booking, Integration Test, Swagger/OpenAPI, Docker, kiểm thử  |
+| Nguyễn Văn Huy Hoàng | Auth, Role, User, Operator, Vehicle, Location, Route, Security |
+| Bùi Công Huy         | Trip, Booking, Exception Handling, Test, Swagger/OpenAPI, Docker, Test Kaggle CPU  |
 
 ## 3. Công nghệ sử dụng
 
@@ -56,26 +56,43 @@ Tài liệu đặc tả chi tiết được lưu tại thư mục [`docs/`](docs
 - [`05-source-code-design.md`](docs/05-source-code-design.md)
 - [`06-quality-attributes.md`](docs/06-quality-attributes.md)
 
-## 6. Cài đặt và chạy
+## 6. Hướng dẫn chạy dự án (tạm thời)
 
-```bash
-git clone <REPOSITORY_URL>
-cd car-booking
+### 6.1. Yêu cầu môi trường
+
+- JDK 21
+- PostgreSQL
+- Maven Wrapper (đã có trong dự án)
+
+### 6.2. Cấu hình cơ sở dữ liệu
+
+Tạo database PostgreSQL tên `busbooking`, sau đó cấu hình trong file `src/main/resources/application.properties`:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5433/busbooking
+spring.datasource.username=busbooking_user
+spring.datasource.password=${DB_PASSWORD}
+```
+
+Thiết lập biến môi trường `DB_PASSWORD` bằng mật khẩu PostgreSQL của bạn. Điều chỉnh **cổng** và **thông tin đăng nhập** nếu môi trường của bạn khác.
+
+### 6.3. Chạy dự án
+
+Mở Terminal tại thư mục gốc của dự án và chạy lệnh trên Windows:
+
+```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-Cần cấu hình PostgreSQL và các biến môi trường trước khi chạy ứng dụng.
+Hoặc chạy trực tiếp file `BusBookingApplication.java` bằng IntelliJ IDEA.
 
-Chạy bằng Docker:
+Flyway sẽ tự động thực thi các migration để tạo bảng khi ứng dụng khởi động.
 
-```bash
-docker compose up --build
-```
+### 6.4. Truy cập tài liệu API (hiện tại chưa hỗ trợ tài liệu api swagger)
 
-## 7. Kiểm thử
+Sau khi ứng dụng khởi động thành công:
 
-```bash
-.\mvnw.cmd test
-```
+- **Swagger UI:** http://localhost:8085/swagger-ui/index.html
+- **OpenAPI JSON:** http://localhost:8085/v3/api-docs
 
-Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+**Lưu ý:** Đây là hướng dẫn chạy tạm thời trong môi trường phát triển cục bộ. Không đưa mật khẩu hoặc thông tin bí mật vào GitHub.
